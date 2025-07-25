@@ -7,7 +7,7 @@
 2. Install Docker and docker-compose
 3. Build the Docker image
 ```bash
-./compose_docekr.sh
+./compose_docker.sh
 ```
 4. Run the Docker container
 ```bash
