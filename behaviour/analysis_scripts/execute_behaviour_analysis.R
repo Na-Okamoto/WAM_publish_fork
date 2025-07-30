@@ -1527,3 +1527,13 @@ source(here::here("behaviour", "analysis_scripts", "meta_d_rule.R"))
 
 ## Supplementary Figure 13D -----------------------------------------------------------------------------
 source(here::here("behaviour", "analysis_scripts", "confidence_and_performances.R"))
+
+# 正規化distanceとzスコア化confidenceの関係プロット
+df_rule_hit %>%
+  ggplot(aes(x = normalizedDistance, y = zConfidence)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "black") +
+  theme_fig +
+  xlab("Normalized Distance (Distance / true threshold)") +
+  ylab("Z-scored Confidence") +
+  ggtitle("Relationship between Normalized Distance and Z-scored Confidence")
