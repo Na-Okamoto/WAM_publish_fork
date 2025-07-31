@@ -1566,7 +1566,7 @@ p_accuracy_practice <- df_practice_performance %>%
   theme_fig_boxplot +
   xlab("") +
   labs(shape = "") +
-  ylab("p(correct state inference)") +
+  ylab("p(correct state inference) in practice") +
   scale_shape_manual(values = c(4, 1))
 
 p_accuracy_practice %>% save_svg_figure("p_accuracy_practice", analysis_group = "practice_performance", scaling = fig_anova_scale, width = fig_1box_width, height = fig_1box_height, unit = "mm")
