@@ -10,6 +10,63 @@ source(here("model_based_analysis", "model", "model_prediction.R"))
 # data preprocessing provides df_rule_hit
 source(here("model_based_analysis", "preprocess", "MLE_preprocess.R"))
 
+run_simulation_and_mle <- function(simulation_model_name, model_obj_list, df_rule_hit) {
+  param_file <- fs::path("R_result", paste0(simulation_model_name, "_Distance_random_estimation.rds"))
+  sim_df <- df_rule_hit %>%
+    predict_from_file(param_file, c("Distance")) %>%
+    mutate(behaviour = as.numeric(EstRule == "random"), input = "Distance") %>%
+    select(
+      PlayerID, TrialID,
+      TrialsAfterSwitchToSkill, TrialsAfterSwitchToRandom,
+      behaviour, pred, input,
+      zConfidence, EstRuleConfidence,
+      DisplayScore,
+      TrueRule, EstRule,
+      any_of(c("state", "error")),
+      Distance,
+      true_threshold,
+      all_of(c("Distance")),
+      data
+    ) %>%
+    select(
+      "PlayerID", "TrialID",
+      "TrialsAfterSwitchToSkill", "TrialsAfterSwitchToRandom", "pred", "DisplayScore",
+      "TrueRule", "Distance", "true_threshold"
+    ) %>%
+    mutate(
+      pred_adj = if_else(abs(pred) < 1, pred, pred - 10^(-5)),
+      entropy = (pred_adj * log(pred_adj) + (1 - pred_adj) * log(1 - pred_adj)),
+      EstRule = if_else(pred_adj > 0.5, "random", "skill"),
+      threshold = true_threshold
+    ) %>%
+    group_by(PlayerID) %>%
+    mutate(
+      zConfidence = scale(entropy, center = TRUE, scale = TRUE)
+    ) %>%
+    ungroup() %>%
+    select(
+      PlayerID, TrialID,
+      TrialsAfterSwitchToSkill, TrialsAfterSwitchToRandom,
+      DisplayScore,
+      TrueRule, EstRule, pred,
+      Distance, threshold,
+      zConfidence
+    )
+  print(paste0("MLE simulation started for ", simulation_model_name))
+  for (model_name in names(model_obj_list)) {
+    cat(sprintf("fitting %s\n", model_name))
+    model_obj <- model_obj_list[[model_name]]
+    estimate_model(
+      sim_df,
+      model_obj,
+      model_name,
+      "Distance",
+      "random",
+      suffix = simulation_model_name
+    )
+  }
+  print(paste0("MLE simulation ended for ", simulation_model_name))
+}
 
 # step 1: load parameter estimates of the full model
 full_param_file <- here("model_based_analysis", "R_result", "binary_sign_model_obj_Distance_random_estimation.rds")
