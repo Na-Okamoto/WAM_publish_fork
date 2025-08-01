@@ -23,7 +23,8 @@ step <- function(x) {
 }
 
 fit_all_participants <- function(df_rule_hit, model_obj, input_col, output_rule) {
-  est_result <- foreach(p_ = df_rule_hit$PlayerID %>% unique(), .combine = rbind, .packages = c("foreach", "doParallel", "tidyverse")) %dopar% {
+  # est_result <- foreach(p_ = df_rule_hit$PlayerID %>% unique(), .combine = rbind, .packages = c("foreach", "doParallel", "tidyverse")) %dopar% {
+  est_result <- foreach(p_ = df_rule_hit$PlayerID %>% unique(), .combine = rbind, .packages = c("foreach", "doParallel", "tidyverse")) %do% {
     source(here::here("model_based_analysis", "model/model_definition.R"))
 
     # print(paste0("IDa:", p_))
