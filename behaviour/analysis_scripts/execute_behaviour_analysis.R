@@ -532,7 +532,7 @@ p_distance_true <- (df_rule_hit %>%
   geom_density() +
   theme_fig +
   scale_x_log10() +
-  xlab("distance from the centre of the moles") +
+  xlab("hit location (distance from the centre)\n[pixels]") +
   labs(color = true_rule_name)) %T>%
   save_svg_figure("distancescore true ruleplot",
     width = fig_timeseries_width,
@@ -560,13 +560,56 @@ p_distance_true_box <-
       ) +
       theme_fig_boxplot +
       xlab(true_rule_name) +
-      ylab("distance from the centre of the moles")
+      ylab("distance from the centre")
   ) %>%
   save_svg_figure("distance true rule boxplot",
     width = fig_2box_width,
     height = fig_2box_height,
     scaling = fig_anova_scale, unit = "mm"
   ) # Supplementary Figure 4A
+
+## distance across choice
+p_distance_choice_box <- (df_rule_hit %>%
+  mutate(
+    Correct = if_else(Correct, "correct", "incorrect"),
+    DisplayScore = as.factor(numeric_score_to_strings(DisplayScore))
+  ) %>%
+  group_by(PlayerID, EstRule) %>%
+  summarise(Distance = mean(Distance / true_threshold)) %>%
+  ungroup() %>%
+  ggplot(aes(x = EstRule, y = Distance, group = EstRule, color = EstRule)) +
+  geom_boxplot(show.legend = FALSE, outlier.shape = NA) +
+  geom_sina_fitted(
+    alpha = 0.2,
+    show.legend = FALSE,
+    maxwidth = (box_width_2box / 0.75) * 0.5
+  ) +
+  theme_fig_boxplot +
+  xlab(est_rule_name) +
+  ylab("distance from the centre")
+) %T>%
+  save_svg_figure("distance across choice box",
+    width = fig_2box_width,
+    height = fig_2box_height,
+    scaling = fig_anova_scale, unit = "mm"
+  )
+
+p_distance_choice_density <- (df_rule_hit %>%
+  mutate(
+    Correct = if_else(Correct, "correct", "incorrect"),
+    DisplayScore = as.factor(numeric_score_to_strings(DisplayScore))
+  ) %>%
+  ggplot(aes(x = Distance, group = EstRule, color = EstRule), fill = NA) +
+  geom_density() +
+  theme_fig +
+  scale_x_log10() +
+  xlab("hit location (distance from the centre)\n[pixels]") +
+  labs(color = est_rule_name)) %T>%
+  save_svg_figure("distance across choice density",
+    width = fig_timeseries_width,
+    height = fig_timeseries_height,
+    scaling = fig_anova_scale, unit = "mm"
+  )
 
 # wilcox test for distance from the center of the moles
 df_rule_hit %>%
@@ -595,13 +638,13 @@ df_rule_hit %>%
 p_distance_score <- (df_rule_hit %>%
   mutate(
     Correct = if_else(Correct, "correct", "incorrect"),
-    DisplayScore = as.factor(numeric_score_to_strings(DisplayScore))
+    DisplayScore = as.factor(numeric_scoßre_to_strings(DisplayScore))
   ) %>%
   ggplot(aes(x = Distance, group = DisplayScore, color = DisplayScore), fill = NA) +
   geom_density() +
   theme_fig +
   scale_x_log10() +
-  xlab("distance from the centre of the moles") +
+  xlab("hit location (distance from the centre)\n[pixels]") +
   labs(color = "score")) %T>%
   save_svg_figure("distancescore plot",
     width = fig_timeseries_width,
