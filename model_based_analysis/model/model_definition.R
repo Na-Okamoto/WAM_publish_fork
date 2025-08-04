@@ -318,17 +318,17 @@ binary_sign_common_alpha_common_beta_model_obj <-
     c("a", "b", "gamma", "threshold")
   )
 
-binary_sign_true_theta_model_obj = 
-  AccumulationModelClass$new(
-    5, 
-    c(20, 20, 20, 20, 1), 
-    c(-20, -20, -20, -20, 0), 
-    function(...) {
-      parameters = list(...)
-      parameters$params[length(parameters$params) + 1] = 
-      binary_model_wrapper(...)
-      },
-    c("a_G", "a_B", "b_G","b_B", "gamma"))
+# binary_sign_true_theta_model_obj_ =
+#   AccumulationModelClass$new(
+#     5,
+#     c(20, 20, 20, 20, 1),
+#     c(-20, -20, -20, -20, 0),
+#     function(...) {
+#       parameters = list(...)
+#       parameters$params[length(parameters$params) + 1] =
+#       binary_model_wrapper(...)
+#       },
+#     c("a_G", "a_B", "b_G","b_B", "gamma"))
 
 alpha_GB_beta_GB_gamma_model_obj <-
   AccumulationModelClass$new(
