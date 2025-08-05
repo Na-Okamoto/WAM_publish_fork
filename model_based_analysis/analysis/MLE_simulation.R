@@ -83,138 +83,131 @@ for (sim_model in simulation_model_names) {
   run_simulation_and_mle(sim_model, model_obj_list, df_rule_hit)
 }
 
-# for (sim_model in simulation_model_names)
-{
-  # sim_model <- simulation_model_names[1] # Example to run for the first model
-  print(paste0("result for the simulation of ", sim_model))
-  # pattern_str <- paste0("binary_sign.*Distance_random_", sim_model, "_estimation\\.rds")
-  pattern_str <- paste0("binary_sign.*Distance_random_.*_estimation\\.rds")
+# pattern_str <- paste0("binary_sign.*Distance_random_", sim_model, "_estimation\\.rds")
+pattern_str <- paste0("binary_sign.*Distance_random_.*_estimation\\.rds")
 
-  est_result_files <- list.files(
-    here("model_based_analysis", "R_result"),
-    pattern = pattern_str,
-    full.names = TRUE
+est_result_files <- list.files(
+  here("model_based_analysis", "R_result"),
+  pattern = pattern_str,
+  full.names = TRUE
+)
+
+est_results <-
+  map(est_result_files, ~ {
+    df <- rio::import(.x, trust = TRUE)
+    file <- basename(.x)
+    df$name <- stringr::str_extract(file, ".*(?=_Distance_random_)")
+    df$simulation <- stringr::str_extract(file, "(?<=_Distance_random_).*(?=_estimation)")
+    df
+  }) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  mutate(PlayerID = as.factor(PlayerID)) %>%
+  mutate(
+    name = case_when(
+      name == "binary_sign_model_obj" ~ "full",
+      name == "binary_sign_no_gamma_model_obj" ~ "no accumulation",
+      name == "binary_sign_common_beta_model_obj" ~ "common constant term",
+      name == "binary_sign_common_alpha_model_obj" ~ "common error sensitivity",
+      name == "binary_sign_common_alpha_common_beta_model_obj" ~ "common error sensitivity, constant term",
+      name == "binary_sign_true_theta_model_obj" ~ "true threshold",
+      TRUE ~ name
+    ),
+    simulation = case_when(
+      simulation == "binary_sign_model_obj" ~ "full model",
+      simulation == "binary_sign_no_gamma_model_obj" ~ "no accumulation",
+      simulation == "binary_sign_common_beta_model_obj" ~ "common constant term",
+      simulation == "binary_sign_common_alpha_model_obj" ~ "common error sensitivity",
+      simulation == "binary_sign_common_alpha_common_beta_model_obj" ~ "common error sensitivity, constant term",
+      simulation == "binary_sign_true_theta_model_obj" ~ "true threshold",
+      TRUE ~ simulation
+    )
   )
 
-  est_results <-
-    map(est_result_files, ~ {
-      df <- rio::import(.x, trust = TRUE)
-      file <- basename(.x)
-      df$name <- stringr::str_extract(file, ".*(?=_Distance_random_)")
-      df$simulation <- stringr::str_extract(file, "(?<=_Distance_random_).*(?=_estimation)")
-      df
-    }) %>%
-    bind_rows() %>%
-    as_tibble() %>%
-    mutate(PlayerID = as.factor(PlayerID)) %>%
-    mutate(
-      name = case_when(
-        name == "binary_sign_model_obj" ~ "full",
-        name == "binary_sign_no_gamma_model_obj" ~ "no accumulation",
-        name == "binary_sign_common_beta_model_obj" ~ "common constant term",
-        name == "binary_sign_common_alpha_model_obj" ~ "common error sensitivity",
-        name == "binary_sign_common_alpha_common_beta_model_obj" ~ "common error sensitivity, constant term",
-        name == "binary_sign_true_theta_model_obj" ~ "true threshold",
-        TRUE ~ name
-      ),
-      simulation = case_when(
-        simulation == "binary_sign_model_obj" ~ "full model",
-        simulation == "binary_sign_no_gamma_model_obj" ~ "no accumulation",
-        simulation == "binary_sign_common_beta_model_obj" ~ "common constant term",
-        simulation == "binary_sign_common_alpha_model_obj" ~ "common error sensitivity",
-        simulation == "binary_sign_common_alpha_common_beta_model_obj" ~ "common error sensitivity, constant term",
-        simulation == "binary_sign_true_theta_model_obj" ~ "true threshold",
-        TRUE ~ simulation
-      )
-    )
+# モデル順序を事前指定（plot用名称に合わせて修正）
+model_order <- c(
+  "full",
+  "common constant term",
+  "common error sensitivity",
+  "common error sensitivity, constant term",
+  "true threshold",
+  "no accumulation"
+)
 
-  # モデル順序を事前指定（plot用名称に合わせて修正）
-  model_order <- c(
-    "full",
-    "common constant term",
-    "common error sensitivity",
-    "common error sensitivity, constant term",
-    "true threshold",
-    "no accumulation"
+# 各simulationごとにAIC最小のモデルを抽出
+min_aic_points <- est_results %>%
+  group_by(simulation, name) %>%
+  summarise(AIC = mean(AIC, na.rm = TRUE)) %>%
+  group_by(simulation) %>%
+  filter(AIC == min(AIC, na.rm = TRUE)) %>%
+  ungroup()
+p_AIC_boxplot_across_models_for_simulated <- est_results %>%
+  ggplot(aes(x = AIC, y = factor(name, levels = model_order), group = name, fill = name)) +
+  stat_summary(
+    fun = mean,
+    width = 0.8,
+    geom = "col",
+    fill = "black",
+    color = "black",
+    alpha = 0.2
+  ) +
+  stat_summary(
+    fun = mean, geom = "text",
+    aes(
+      label = sprintf("%.1f", after_stat(x)),
+      hjust = ifelse(after_stat(x) < 150, -0.2, 1.2),
+      color = ifelse(after_stat(x) < 150, "black", "white")
+    ),
+    size = 5
+  ) +
+  # scale_color_identity() +
+  # 各simulationごとにAIC最小のモデルに赤い矢印を描画
+  # geom_segment(
+  #   data = min_aic_points,
+  #   aes(
+  #     x = AIC + 110, xend = AIC + 80,
+  #     y = factor(name, levels = model_order),
+  #     yend = factor(name, levels = model_order)
+  #   ),
+  #   arrow = arrow(length = unit(0.25, "cm")),
+  #   color = "red",
+  #   linewidth = 1.2,
+  #   inherit.aes = FALSE
+  # ) +
+  # 各facet内でsimulationモデルと他モデルの比較を自動で作るのは難しいため、ここはコメントアウト例
+  # geom_signif(
+  #   comparisons = split(
+  #     lapply(model_order[-1], function(other) c("full", other)),
+  #     seq_along(model_order[-1])
+  #   ),
+  #   test = "wilcox.test",
+  #   test.args = list(paired = TRUE, exact = TRUE),
+  #   map_signif_level = TRUE, color = "black",
+  #   alpha = 1, textsize = 6,
+  #   vjust = 0.5,
+  #   step_increase = 0.1,
+  #   y_position = 520
+  # ) +
+  theme_fig_base +
+  theme(aspect.ratio = 1 / 1.414, legend.position = "none") +
+  # scale_y_discrete(
+  #   labels = function(x) paste(x, "model")
+  # ) +
+  ylab("") +
+  xlab("AIC") +
+  facet_wrap(~simulation, ncol = 2) +
+  # remove the boxline and color of the facet ribbon
+  theme(
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  ) +
+  # scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
+  scale_color_identity()
+
+p_AIC_boxplot_across_models_for_simulated %>%
+  save_svg_figure("AIC boxplot across models for each simulated data",
+    width = 1000,
+    height = 1200,
+    scaling = fig_anova_scale, unit = "mm",
+    analysis_group = "simulated_data"
   )
-
-  # 各simulationごとにAIC最小のモデルを抽出
-  min_aic_points <- est_results %>%
-    group_by(simulation, name) %>%
-    summarise(AIC = mean(AIC, na.rm = TRUE)) %>%
-    group_by(simulation) %>%
-    filter(AIC == min(AIC, na.rm = TRUE)) %>%
-    ungroup()
-  p_AIC_boxplot_across_models_for_simulated <- est_results %>%
-    ggplot(aes(x = AIC, y = factor(name, levels = model_order), group = name, fill = name)) +
-    stat_summary(
-      fun = mean,
-      width = 0.8,
-      geom = "col",
-      fill = "black",
-      color = "black",
-      alpha = 0.2
-    ) +
-    stat_summary(
-      fun = mean, geom = "text",
-      aes(
-        label = sprintf("%.1f", after_stat(x)),
-        hjust = ifelse(after_stat(x) < 150, -0.2, 1.2),
-        color = ifelse(after_stat(x) < 150, "black", "white")
-      ),
-      size = 5
-    ) +
-    # scale_color_identity() +
-    # 各simulationごとにAIC最小のモデルに赤い矢印を描画
-    # geom_segment(
-    #   data = min_aic_points,
-    #   aes(
-    #     x = AIC + 110, xend = AIC + 80,
-    #     y = factor(name, levels = model_order),
-    #     yend = factor(name, levels = model_order)
-    #   ),
-    #   arrow = arrow(length = unit(0.25, "cm")),
-    #   color = "red",
-    #   linewidth = 1.2,
-    #   inherit.aes = FALSE
-    # ) +
-    # 各facet内でsimulationモデルと他モデルの比較を自動で作るのは難しいため、ここはコメントアウト例
-    # geom_signif(
-    #   comparisons = split(
-    #     lapply(model_order[-1], function(other) c("full", other)),
-    #     seq_along(model_order[-1])
-    #   ),
-    #   test = "wilcox.test",
-    #   test.args = list(paired = TRUE, exact = TRUE),
-    #   map_signif_level = TRUE, color = "black",
-    #   alpha = 1, textsize = 6,
-    #   vjust = 0.5,
-    #   step_increase = 0.1,
-    #   y_position = 520
-    # ) +
-    theme_fig_base +
-    theme(aspect.ratio = 1 / 1.414, legend.position = "none") +
-    # scale_y_discrete(
-    #   labels = function(x) paste(x, "model")
-    # ) +
-    ylab("") +
-    xlab("AIC") +
-    facet_wrap(~simulation, ncol = 2) +
-    # remove the boxline and color of the facet ribbon
-    theme(
-      strip.background = element_blank(),
-      strip.placement = "outside"
-    ) +
-    # scale_color_manual(values = c("black" = "black", "white" = "white"), guide = "none") +
-    scale_color_identity()
-
-  p_AIC_boxplot_across_models_for_simulated %>%
-    save_svg_figure("AIC boxplot across models for each simulated data",
-      width = 1000,
-      height = 1200,
-      scaling = fig_anova_scale, unit = "mm",
-      analysis_group = "simulated_data"
-    )
-}
-
-est_results %>% filter(simulation == "true threshold")
