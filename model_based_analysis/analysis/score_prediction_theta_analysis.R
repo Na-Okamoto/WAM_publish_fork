@@ -56,6 +56,43 @@ p_theta_pred_error %>%
 # robust regressionの結果を表示
 summary(lm_robust(pred_error ~ threshold_ratio, data = df_merged))
 
+# correlation between prediction error and true theta
+p_theta_true_pred_error <- df_merged %>%
+    ggplot(aes(x = true_threshold, y = pred_error)) +
+    geom_point(alpha = 0.6) +
+    geom_smooth(method = lm_robust, se = TRUE, color = "blue") +
+    theme_fig +
+    labs(
+        x = "true thr.", y = "mean score prediction error"
+    )
+p_theta_true_pred_error %>%
+    save_svg_figure(
+        here("model_based_analysis", "figures", "true_theta_vs_prediction_error.svg"),
+        width = fig_anova_width, height = fig_anova_height, scaling = fig_anova_scale, unit = "mm", analysis_group = "score_prediction_and_theta"
+    )
+
+# robust regression
+summary(lm_robust(pred_error ~ true_threshold, data = df_merged))
+
+# correlation between prediction error and subjective theta
+p_theta_pred_error <- df_merged %>%
+    ggplot(aes(x = theta, y = pred_error)) +
+    geom_point(alpha = 0.6) +
+    geom_smooth(method = lm_robust, se = TRUE, color = "blue") +
+    theme_fig +
+    labs(
+        x = "subj. thr.", y = "mean score prediction error"
+    )
+p_theta_pred_error %>%
+    save_svg_figure(
+        here("model_based_analysis", "figures", "theta_vs_prediction_error.svg"),
+        width = fig_anova_width, height = fig_anova_height, scaling = fig_anova_scale, unit = "mm", analysis_group = "score_prediction_and_theta"
+    )
+
+# robust regression
+summary(lm_robust(pred_error ~ theta, data = df_merged))
+
+
 # correlation between theta and true score itself
 p_theta_true_score <- df_merged %>%
     ggplot(aes(x = threshold_ratio, y = true_score)) +
@@ -200,5 +237,21 @@ p_distance_true_score <- df_score_hit %>%
 p_distance_true_score %>%
     save_svg_figure(
         here("model_based_analysis", "figures", "distance_vs_true_score.svg"),
+        width = fig_anova_width, height = fig_anova_height, scaling = fig_anova_scale, unit = "mm", analysis_group = "score_prediction_and_theta"
+    )
+
+
+# correlation between true threshold and subjectiv threshold
+p_true_threshold_subjective_threshold <- df_merged %>%
+    ggplot(aes(x = true_threshold, y = theta)) +
+    geom_point(alpha = 0.6) +
+    geom_smooth(method = lm_robust, se = TRUE, color = "blue") +
+    theme_fig +
+    labs(
+        x = "true threshold", y = "subjective threshold (theta)"
+    )
+p_true_threshold_subjective_threshold %>%
+    save_svg_figure(
+        here("model_based_analysis", "figures", "true_threshold_vs_subjective_threshold.svg"),
         width = fig_anova_width, height = fig_anova_height, scaling = fig_anova_scale, unit = "mm", analysis_group = "score_prediction_and_theta"
     )
