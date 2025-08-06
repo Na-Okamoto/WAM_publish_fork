@@ -55,11 +55,19 @@ p_conf_subjective_distance <- df_rule_hit %>%
     # geom_point(alpha = 0.3) +
     geom_smooth(color = "black") +
     geom_vline(xintercept = 1, linetype = "dashed", color = "black") +
+    annotate("text",
+        x = 1.2, y = 0.35,
+        label = "subjective\nthreshold", hjust = 0, vjust = 1, size = 4
+    ) +
     theme_fig +
-    xlab("distance / subj. thr") +
-    ylab("z-scored confidence") +
-    scale_x_log10()
-# coord_cartesian(xlim = c(0, 10))
+    xlab("distance normalised to the subjective threshold\n(log scale)") +
+    ylab("confidence\n(z-scored)") +
+    scale_x_log10() +
+    theme(
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+    ) +
+    theme(plot.margin = margin(0, 20, 0, 5))
 
 p_conf_subjective_distance %>% save_svg_figure("subjective_distance_vs_zscored_confidence",
     analysis_group = "confidence_distance_relation",
