@@ -98,9 +98,9 @@ df_rule_hit_origin <- read_csv(here::here("data/df_rule_hit_switch.csv")) %>%
     DisplayScore = if_else(DisplayScore < 0, 0, DisplayScore)
   )
 df_score_hit <- read_csv(here::here("data/df_score_hit.csv")) %>% mutate(PlayerID = as.factor(PlayerID))
-df_median <- df_score_hit %>% group_by(PlayerID)
-
-
+df_median <- df_score_hit %>%
+  group_by(PlayerID) %>%
+  summarise(threshold = median(Distance))
 ## ----preprocess---------------------------------------------------------------
 source(here::here("behaviour", "analysis_scripts", "CheckCriteria.R"))
 source(here::here("behaviour", "analysis_scripts", "preprocess.R"))
@@ -664,6 +664,23 @@ df_rule_hit %>%
   select(PlayerID, TrueRule, ratio) %>%
   posthoc_wilcox_test(ratio ~ TrueRule) %>%
   output_posthoc_result("posthoc_wilcox_test_ratio_score_true_rule", analysis_group = "ratio_score")
+
+df_rule_hit %>%
+  group_by(PlayerID, TrueRule, DisplayScore) %>%
+  summarise(count = n()) %>%
+  mutate(DisplayScore = numeric_score_to_strings(DisplayScore)) %>%
+  pivot_wider(names_from = DisplayScore, values_from = count) %>%
+  group_by(TrueRule) %>%
+  summarise(
+    mean_positive = mean(positive, na.rm = TRUE),
+    mean_negative = mean(negative, na.rm = TRUE),
+    n = mean(positive + negative),
+    sd_n = sd(positive + negative),
+    ratio = mean(positive / (positive + negative)),
+    sd_ratio = sd(positive / (positive + negative)),
+    med_ratio = median(positive / (positive + negative)),
+    sd_med_ratio = sd(median(positive / (positive + negative)))
+  )
 
 # test against chance level
 df_rule_hit %>%
