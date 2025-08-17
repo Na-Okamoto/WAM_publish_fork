@@ -2,18 +2,20 @@ library(tidyverse)
 library(here)
 library(rio)
 
-source(here::here("model_based_analysis","model","model_definition.R"))
-source(here::here("model_based_analysis","model","model_utility.R"))
-source(here::here("model_based_analysis","preprocess","MLE_preprocess.R"))
+source(here::here("model_based_analysis", "model", "model_definition.R"))
+source(here::here("model_based_analysis", "model", "model_utility.R"))
+source(here::here("model_based_analysis", "preprocess", "MLE_preprocess.R"))
 
 # Split each participant's data into training and test sets at the midpoint of trials
 split_half <- function(df) {
   df %>%
     group_by(PlayerID) %>%
     arrange(TrialID) %>%
-    mutate(trial_index = row_number(),
-           split_point = floor(max(trial_index) / 2),
-           dataset = if_else(trial_index <= split_point, "train", "test")) %>%
+    mutate(
+      trial_index = row_number(),
+      split_point = floor(max(trial_index) / 2),
+      dataset = if_else(trial_index <= split_point, "train", "test")
+    ) %>%
     ungroup()
 }
 
@@ -21,13 +23,23 @@ split_half <- function(df) {
 fit_and_evaluate <- function(train_df, test_df, model_obj, input_col, output_rule) {
   est_result <- fit_all_participants(train_df, model_obj, input_col, output_rule)
 
+  # convert to tibble if est_result is not already a tibble
+  if (!is_tibble(est_result)) {
+    est_result <- as_tibble(est_result)
+  }
+
   eval_results <- unique(test_df$PlayerID) %>%
     map_dfr(function(p_) {
       each_df <- test_df %>% filter(PlayerID == p_)
-      theta <- each_df %>% pull(threshold) %>% unique()
+      theta <- each_df %>%
+        pull(threshold) %>%
+        unique()
       stopifnot(length(theta) == 1)
 
-      input <- each_df %>% pull({{input_col}}) %>% as.vector() %>% unlist()
+      input <- each_df %>%
+        pull({{ input_col }}) %>%
+        as.vector() %>%
+        unlist()
       is_good <- each_df$DisplayScore
       behaviour <- each_df$EstRule == output_rule
 
@@ -44,9 +56,11 @@ fit_and_evaluate <- function(train_df, test_df, model_obj, input_col, output_rul
       log_lik <- log_lik_bernoulli(params, input, behaviour, pred)
       accuracy <- mean((pred(input, params) > 0.5) == behaviour)
 
-      tibble(PlayerID = p_,
-             test_log_likelihood = log_lik,
-             test_accuracy = accuracy)
+      tibble(
+        PlayerID = p_,
+        test_log_likelihood = log_lik,
+        test_accuracy = accuracy
+      )
     })
 
   list(estimation = est_result, evaluation = eval_results)
@@ -82,10 +96,11 @@ for (col in c("Distance")) {
     est_result <- res$estimation
     eval_result <- res$evaluation
     export(est_result, here::here("model_based_analysis", sprintf("R_result/%s_%s_random_train_estimation.rds", model_name, col)))
-    export(eval_result, here::here("model_based_analysis", sprintf("R_result/%s_%s_random_test_evaluation.rds", model_name, col)))
+    export(eval_result, here::here("model_based_analysis", sprintf("c", model_name, col)))
     message(sprintf("completed %s", model_name))
   }
 }
+
 
 message("MLE train/test split finished")
 
