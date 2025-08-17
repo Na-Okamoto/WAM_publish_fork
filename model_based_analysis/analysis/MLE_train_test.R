@@ -88,3 +88,36 @@ for (col in c("Distance")) {
 }
 
 message("MLE train/test split finished")
+
+# 全モデル分のtrain estimation結果を一括ロード
+train_estimation_list <- list()
+for (model_name in names(model_obj_list)) {
+  file_path <- here::here("model_based_analysis", "R_result", sprintf("%s_Distance_random_train_estimation.rds", model_name))
+  if (file.exists(file_path)) {
+    train_estimation_list[[model_name]] <- rio::import(file_path) %>% as_tibble()
+    message(sprintf("Loaded: %s", file_path))
+  } else {
+    message(sprintf("File not found: %s", file_path))
+  }
+}
+
+# concatenate all train estimation results into a single tibble
+train_estimation_df <- bind_rows(train_estimation_list, .id = "model_name")
+train_estimation_df %>%
+  group_by(model_name) %>%
+  summarise(
+    num_participants = n_distinct(PlayerID),
+    mean_log_likelihood = mean(log_likelihood, na.rm = TRUE),
+    mean_AIC = mean(AIC, na.rm = TRUE)
+  ) %>%
+  # rename  model name for clarity
+  mutate(model_name = case_when(
+    model_name == "binary_sign_model_obj" ~ "full",
+    model_name == "binary_sign_no_gamma_model_obj" ~ "no accumulation",
+    model_name == "binary_sign_common_beta_model_obj" ~ "common constant term",
+    model_name == "binary_sign_common_alpha_model_obj" ~ "common error sensitivity",
+    model_name == "binary_sign_common_alpha_common_beta_model_obj" ~ "common error sensitivity, constant term",
+    model_name == "binary_sign_true_theta_model_obj" ~ "true threshold",
+    TRUE ~ model_name
+  )) %>%
+  arrange(desc(mean_log_likelihood))
