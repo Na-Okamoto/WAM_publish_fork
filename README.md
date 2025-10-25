@@ -26,7 +26,7 @@ renv::restore()
 ```r
 source("behaviour/analysis_scripts/execute_behaviour_analysis.R")
 ```
-3. Run the model based anaysis script 
+3. Run the model based anaysis script
 
 > [!NOTE] 
 > This script will take a long time with CPU resource to run simulations.
@@ -38,6 +38,19 @@ source("behaviour/analysis_scripts/execute_behaviour_analysis.R")
 ```r
 source("model_based_analysis/execute_model_analysis.R")
 ```
+
+## Hierarchical Bayesian estimation
+An additional script is provided to estimate the binary sign model with
+hierarchical Bayes using **cmdstanr**.  CmdStan must be installed once
+before running the estimation.  A helper script is included to automate
+this setup.
+
+```r
+source("scripts/install_cmdstanr.R")    # run once to install cmdstanr/CmdStan
+source("model_based_analysis/analysis/hierarchical_estimation.R")
+```
+The script fits the model to the first 10 participants with a reduced number of
+warmup and sampling iterations so that the estimation can run quickly.
 
 # data
 - `df_rule_hit_switch.csv`: The data of the rule prediction main task used in the paper.
